@@ -176,13 +176,46 @@ npm run dev
 
 You can deploy with one click using [Tencent EdgeOne Pages](https://pages.edgeone.ai/).
 
-Deploy by this button: 
+[![Deploy to EdgeOne Pages](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Fjsabook%2Fnext-ai-draw-io)
 
-[![Deploy to EdgeOne Pages](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2FDayuanJiang%2Fnext-ai-draw-io)
+#### Build Settings
 
-Check out the [Tencent EdgeOne Pages documentation](https://pages.edgeone.ai/document/deployment-overview) for more details.
+| Field | Value |
+|-------|-------|
+| Framework | Next.js (auto-detected) |
+| Build command | `npm run migrate && npm run build` |
+| Node.js version | 20.x |
 
-Additionally, deploying through Tencent EdgeOne Pages will also grant you a [daily free quota for DeepSeek models](https://pages.edgeone.ai/document/edge-ai).
+#### Environment Variables
+
+**AI Provider** — use EdgeOne's free built-in DeepSeek quota (no API key required):
+
+```
+AI_PROVIDER=edgeone
+AI_MODEL=deepseek-v3-0324
+```
+
+Or bring your own API key from any supported provider (OpenAI, Anthropic, etc.).
+
+**Admin Panel** (optional) — backed by Cloudflare D1 via HTTP, works from any environment:
+
+```
+JWT_SECRET=<random 32+ char string>
+CF_ACCOUNT_ID=<your Cloudflare account ID>
+CF_API_TOKEN=<your Cloudflare API token>
+CF_D1_DATABASE_ID=<your D1 database ID>
+```
+
+To create the D1 database, run once locally:
+
+```bash
+npx wrangler d1 create admin-db
+npx wrangler d1 execute admin-db --file=lib/db/schema.sql
+```
+
+The `npm run migrate` step in the build command will keep the schema up to date on every deployment. If the CF_* variables are not set, migration is skipped and the build continues normally.
+
+Check out the [Tencent EdgeOne Pages documentation](https://pages.edgeone.ai/document/deployment-overview) for more details, and the [Edge AI documentation](https://pages.edgeone.ai/document/edge-ai) for the free DeepSeek quota.
 
 ### Deploy on Vercel 
 
