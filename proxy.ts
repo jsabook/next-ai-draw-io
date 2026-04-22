@@ -3,6 +3,9 @@ import Negotiator from "negotiator"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import { i18n } from "./lib/i18n/config"
+import { verifyToken, AUTH_COOKIE_NAME } from "./lib/auth"
+
+const PUBLIC_ADMIN_PATHS = ["/admin/login"]
 
 function getLocale(request: NextRequest): string | undefined {
     // Negotiator expects plain object so we need to transform headers
@@ -24,8 +27,43 @@ function getLocale(request: NextRequest): string | undefined {
     return locale
 }
 
-export function proxy(request: NextRequest) {
+async function handleAdminAuth(request: NextRequest) {
     const pathname = request.nextUrl.pathname
+
+    if (PUBLIC_ADMIN_PATHS.some((path) => pathname === path)) {
+        return null
+    }
+
+    const token = request.cookies.get(AUTH_COOKIE_NAME)?.value
+
+    if (!token) {
+        return NextResponse.redirect(new URL("/admin/login", request.url))
+    }
+
+    const payload = await verifyToken(token)
+
+    if (!payload) {
+        const response = NextResponse.redirect(
+            new URL("/admin/login", request.url)
+        )
+        response.cookies.delete(AUTH_COOKIE_NAME)
+        return response
+    }
+
+    return null
+}
+
+export async function proxy(request: NextRequest) {
+    const pathname = request.nextUrl.pathname
+
+    // Handle admin routes authentication
+    if (pathname.startsWith("/admin")) {
+        const authResponse = await handleAdminAuth(request)
+        if (authResponse) {
+            return authResponse
+        }
+        return
+    }
 
     // Skip API routes, static files, and Next.js internals
     if (

@@ -37,6 +37,8 @@ import {
 } from "@/lib/langfuse"
 import { findServerModelById } from "@/lib/server-model-config"
 import { getSystemPrompt } from "@/lib/system-prompts"
+import { getAllPromptOverrides } from "@/lib/db/prompts"
+import { getStylePreset } from "@/lib/db/style-presets"
 import { getUserIdFromRequest } from "@/lib/user-id"
 
 export const maxDuration = 120
@@ -96,6 +98,8 @@ async function handleChatRequest(req: Request): Promise<Response> {
         typeof body.customSystemMessage === "string"
             ? body.customSystemMessage.slice(0, 5000)
             : ""
+    const stylePresetId =
+        typeof body.stylePresetId === "string" ? body.stylePresetId : null
 
     // Get user ID for Langfuse tracking and quota
     const userId = getUserIdFromRequest(req)
@@ -255,11 +259,32 @@ async function handleChatRequest(req: Request): Promise<Response> {
         `[Prompt Caching] ${shouldCache ? "ENABLED" : "DISABLED"} for model: ${modelId}`,
     )
 
+    // Load prompt overrides from D1 (falls back to defaults if CF env vars not set)
+    let promptOverrides: Record<string, string> = {}
+    try {
+        promptOverrides = await getAllPromptOverrides()
+    } catch {
+        // CF_ACCOUNT_ID / CF_D1_DATABASE_ID / CF_API_TOKEN not configured — use hardcoded defaults
+    }
+
+    // Load style preset snippet if selected
+    let styleSnippet = ""
+    if (stylePresetId) {
+        try {
+            const preset = await getStylePreset(stylePresetId)
+            if (preset) styleSnippet = preset.prompt_snippet
+        } catch {
+            // D1 not configured or preset not found — skip
+        }
+    }
+
     // Get the appropriate system prompt based on model (extended for Opus/Haiku 4.5)
-    const systemMessage = getSystemPrompt(modelId, minimalStyle)
-    const finalSystemMessage = customSystemMessage
-        ? `${systemMessage}\n\n## Custom Instructions\n${customSystemMessage}`
-        : systemMessage
+    const systemMessage = getSystemPrompt(modelId, minimalStyle, promptOverrides)
+    const finalSystemMessage = [
+        systemMessage,
+        customSystemMessage ? `## Custom Instructions\n${customSystemMessage}` : "",
+        styleSnippet ? `## Diagram Style\n${styleSnippet}` : "",
+    ].filter(Boolean).join("\n\n")
 
     // Extract file parts (images) from the last user message
     const fileParts =

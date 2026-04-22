@@ -191,7 +191,7 @@ When creating edges/connectors, you MUST follow these rules to avoid overlapping
 `
 
 // Style instructions - only included when minimalStyle is false
-const STYLE_INSTRUCTIONS = `
+export const STYLE_INSTRUCTIONS = `
 Common styles:
 - Shapes: rounded=1 (rounded corners), fillColor=#hex, strokeColor=#hex
 - Edges: endArrow=classic/block/open/none, startArrow=none/classic, curved=1, edgeStyle=orthogonalEdgeStyle
@@ -199,7 +199,7 @@ Common styles:
 `
 
 // Minimal style instruction - skip styling and focus on layout (prepended to prompt for emphasis)
-const MINIMAL_STYLE_INSTRUCTION = `
+export const MINIMAL_STYLE_INSTRUCTION = `
 ## ⚠️ MINIMAL STYLE MODE ACTIVE ⚠️
 
 ### No Styling - Plain Black/White Only
@@ -375,6 +375,7 @@ const EXTENDED_PROMPT_MODEL_PATTERNS = [
 export function getSystemPrompt(
     modelId?: string,
     minimalStyle?: boolean,
+    overrides?: Record<string, string>,
 ): string {
     const modelName = modelId || "AI"
 
@@ -388,12 +389,12 @@ export function getSystemPrompt(
         console.log(
             `[System Prompt] Using EXTENDED prompt for model: ${modelId}`,
         )
-        prompt = EXTENDED_SYSTEM_PROMPT
+        prompt = overrides?.["EXTENDED_SYSTEM_PROMPT"] ?? EXTENDED_SYSTEM_PROMPT
     } else {
         console.log(
             `[System Prompt] Using DEFAULT prompt for model: ${modelId || "unknown"}`,
         )
-        prompt = DEFAULT_SYSTEM_PROMPT
+        prompt = overrides?.["DEFAULT_SYSTEM_PROMPT"] ?? DEFAULT_SYSTEM_PROMPT
     }
 
     // Add style instructions based on preference
@@ -401,9 +402,9 @@ export function getSystemPrompt(
     // Normal style: append at end
     if (minimalStyle) {
         console.log(`[System Prompt] Minimal style mode ENABLED`)
-        prompt = MINIMAL_STYLE_INSTRUCTION + prompt
+        prompt = (overrides?.["MINIMAL_STYLE_INSTRUCTION"] ?? MINIMAL_STYLE_INSTRUCTION) + prompt
     } else {
-        prompt += STYLE_INSTRUCTIONS
+        prompt += overrides?.["STYLE_INSTRUCTIONS"] ?? STYLE_INSTRUCTIONS
     }
 
     return prompt.replace("{{MODEL_NAME}}", modelName)

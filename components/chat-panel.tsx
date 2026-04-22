@@ -21,6 +21,7 @@ import { flushSync } from "react-dom"
 import { Toaster, toast } from "sonner"
 import { ButtonWithTooltip } from "@/components/button-with-tooltip"
 import { ChatInput } from "@/components/chat-input"
+import type { StylePresetOption } from "@/components/style-preset-selector"
 import Image from "@/components/image-with-basepath"
 import { ModelConfigDialog } from "@/components/model-config-dialog"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -178,6 +179,8 @@ export default function ChatPanel({
     const [vlmValidationEnabled, setVlmValidationEnabled] = useState(false)
     const [customSystemMessage, setCustomSystemMessage] = useState("")
     const [shouldFocusInput, setShouldFocusInput] = useState(false)
+    const [stylePresets, setStylePresets] = useState<StylePresetOption[]>([])
+    const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null)
 
     // Restore input from sessionStorage on mount (when ChatPanel remounts due to key change)
     useEffect(() => {
@@ -185,6 +188,16 @@ export default function ChatPanel({
         if (savedInput) {
             setInput(savedInput)
         }
+    }, [])
+
+    // Load style presets on mount
+    useEffect(() => {
+        fetch("/api/style-presets")
+            .then((r) => r.json())
+            .then((data: { presets?: StylePresetOption[] }) => {
+                if (data.presets) setStylePresets(data.presets)
+            })
+            .catch(() => {})
     }, [])
 
     // Load VLM validation setting from localStorage on mount
@@ -1069,7 +1082,7 @@ export default function ChatPanel({
         sendMessage(
             { parts },
             {
-                body: { xml, previousXml, sessionId, customSystemMessage },
+                body: { xml, previousXml, sessionId, customSystemMessage, stylePresetId: selectedStyleId },
                 headers: {
                     "x-access-code": config.accessCode,
                     ...(config.aiProvider && {
@@ -1435,6 +1448,9 @@ export default function ChatPanel({
                     showUnvalidatedModels={modelConfig.showUnvalidatedModels}
                     shouldFocus={shouldFocusInput}
                     onFocused={() => setShouldFocusInput(false)}
+                    stylePresets={stylePresets}
+                    selectedStyleId={selectedStyleId}
+                    onStyleSelect={setSelectedStyleId}
                 />
             </footer>
 

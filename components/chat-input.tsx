@@ -25,6 +25,7 @@ import { ErrorToast } from "@/components/error-toast"
 import { HistoryDialog } from "@/components/history-dialog"
 import { ModelSelector } from "@/components/model-selector"
 import { SaveDialog } from "@/components/save-dialog"
+import { StylePresetSelector, type StylePresetOption } from "@/components/style-preset-selector"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -177,6 +178,10 @@ interface ChatInputProps {
     // Focus control props
     shouldFocus?: boolean
     onFocused?: () => void
+    // Style preset props
+    stylePresets?: StylePresetOption[]
+    selectedStyleId?: string | null
+    onStyleSelect?: (id: string | null) => void
 }
 
 export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
@@ -201,6 +206,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             showUnvalidatedModels = false,
             shouldFocus = false,
             onFocused,
+            stylePresets = [],
+            selectedStyleId = null,
+            onStyleSelect,
         },
         ref,
     ) {
@@ -564,6 +572,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                                 disabled={isDisabled}
                             />
                         </div>
+                        {stylePresets.length > 0 && onStyleSelect && (
+                            <StylePresetSelector
+                                presets={stylePresets}
+                                selectedId={selectedStyleId}
+                                onSelect={onStyleSelect}
+                                disabled={isDisabled}
+                            />
+                        )}
                         <ModelSelector
                             models={models}
                             selectedModelId={selectedModelId}

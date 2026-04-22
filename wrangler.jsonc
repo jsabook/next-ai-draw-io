@@ -14,6 +14,13 @@
             "bucket_name": "next-inc-cache"
         }
     ],
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "admin-db",
+            "database_id": "<your-database-id>" // Run: npx wrangler d1 create admin-db
+        }
+    ],
     "services": [
         {
             "binding": "WORKER_SELF_REFERENCE",

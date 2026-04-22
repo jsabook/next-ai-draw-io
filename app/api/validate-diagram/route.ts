@@ -6,6 +6,7 @@
 import { streamObject } from "ai"
 import { getValidationModel } from "@/lib/ai-providers"
 import { VALIDATION_SYSTEM_PROMPT } from "@/lib/validation-prompts"
+import { getPromptOverride } from "@/lib/db/prompts"
 import {
     type ValidationResult,
     ValidationResultSchema,
@@ -92,11 +93,20 @@ export async function POST(req: Request): Promise<Response> {
                 parseInt(process.env.VALIDATION_TIMEOUT || "10000", 10),
             ) || 10000
 
+        // Load validation prompt override from D1 (falls back to default if CF env vars not set)
+        let validationPrompt = VALIDATION_SYSTEM_PROMPT
+        try {
+            const override = await getPromptOverride("VALIDATION_SYSTEM_PROMPT")
+            if (override) validationPrompt = override.content
+        } catch {
+            // CF_ACCOUNT_ID / CF_D1_DATABASE_ID / CF_API_TOKEN not configured — use default
+        }
+
         // Stream the VLM response for useObject consumption
         const result = streamObject({
             model,
             schema: ValidationResultSchema,
-            system: VALIDATION_SYSTEM_PROMPT,
+            system: validationPrompt,
             messages: [
                 {
                     role: "user",
